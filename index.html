@@ -179,7 +179,6 @@
 
 <header>
   <h1>キャラクター設定ツール</h1>
-  <span>SOP最終版 準拠実装</span>
 </header>
 
 <div class="container">
@@ -224,6 +223,11 @@
         <input type="text" id="f-pronoun" placeholder="例：私、俺、僕" autocomplete="off">
       </div>
 
+      <div class="field">
+        <label>ユーザーの呼び方<span class="opt">任意</span></label>
+        <input type="text" id="f-user-address" placeholder="例：きみ、お前、あなた" autocomplete="off">
+      </div>
+
       <div class="divider"></div>
       <div class="section-title">詳細設定</div>
 
@@ -238,9 +242,8 @@
       </div>
 
       <div class="field">
-        <label>性格<span class="req">*</span></label>
+        <label>性格<span class="opt">任意</span></label>
         <textarea id="f-personality" placeholder="例：冷静沈着だが、仲間には優しい"></textarea>
-        <div class="error-msg" id="err-personality">⚠ 性格は必須です</div>
       </div>
 
       <div class="field">
@@ -271,11 +274,6 @@
             禁則事項を追加
           </button>
         </div>
-      </div>
-
-      <div style="margin-top:16px;">
-        <div class="capacity-bar"><div class="capacity-fill" id="capacity-fill"></div></div>
-        <div class="capacity-label" id="capacity-label">localStorage 使用量：計算中...</div>
       </div>
 
     </div>
@@ -314,11 +312,6 @@
       <h2>セリフ例</h2>
     </div>
     <div class="panel-body">
-      <p style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
-        AIがキャラクターのトーン・テンポ・語彙を学習するための例文です。<br>
-        <span style="color:var(--accent-dim);">3例以上</span>あるとAIの再現精度が向上します。
-      </p>
-
       <div class="field" style="margin-bottom:16px;">
         <label>グリーティング<span class="opt">任意 — 最初の一言</span></label>
         <textarea id="f-greeting" placeholder="例：「……来たか。予定通りだ」" style="min-height:56px;"></textarea>
@@ -327,13 +320,19 @@
 
       <div class="divider" style="margin:14px 0;"></div>
 
+      <p style="font-size:0.72rem;color:var(--text-dim);margin-bottom:12px;line-height:1.6;">AIがキャラクターのトーン・テンポ・語彙を学習するための例文です。<span style="color:var(--accent-dim);"> 3例以上</span>あるとAIの再現精度が向上します。</p>
+
       <div class="dialogue-list" id="dialogue-list"></div>
       <div style="margin-top:10px;">
         <button class="btn btn-add" id="btn-add-dialogue" type="button">
           <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           セリフ例を追加
         </button>
-        <p class="dialogue-hint" style="margin-top:6px;">{{user}} と {{char}} の記法で入力。そのまま出力に反映されます。</p>
+      </div>
+
+      <div style="margin-top:20px;">
+        <div class="capacity-bar"><div class="capacity-fill" id="capacity-fill"></div></div>
+        <div class="capacity-label" id="capacity-label">localStorage 使用量：計算中...</div>
       </div>
     </div>
   </div>
@@ -392,7 +391,7 @@ const LS_KEY = 'character_tool_data';
 const MAX_BYTES = 5 * 1024 * 1024;
 
 const character = {
-  name:'', age:'', gender:'', genderCustom:'', pronoun:'',
+  name:'', age:'', gender:'', genderCustom:'', pronoun:'', userAddress:'',
   occupation:'', appearance:'', personality:'', relations:'',
   suggestions: [],
   prohibitions: [],
@@ -491,8 +490,8 @@ function addDialogueRowDOM(idx, d) {
   };
 
   item.appendChild(header);
-  item.appendChild(mkField('{{user}}', false, d.user, 'ユーザーのセリフや行動を入力', '48px', e => { character.dialogues[idx].user = e.target.value; }));
-  item.appendChild(mkField('{{char}}', true,  d.char, 'キャラクターの返答を入力',     '58px', e => { character.dialogues[idx].char = e.target.value; }));
+  item.appendChild(mkField('ユーザー', false, d.user, 'ユーザーのセリフや行動を入力', '48px', e => { character.dialogues[idx].user = e.target.value; }));
+  item.appendChild(mkField('キャラクター', true,  d.char, 'キャラクターの返答を入力',     '58px', e => { character.dialogues[idx].char = e.target.value; }));
   list.appendChild(item);
 }
 
@@ -501,16 +500,17 @@ $('btn-add-dialogue').addEventListener('click', () => addDialogueRow());
 /* ── Simple fields ── */
 const simpleFields = {
   name: $('f-name'), age: $('f-age'), genderCustom: $('f-gender-custom'),
-  pronoun: $('f-pronoun'), occupation: $('f-occupation'), appearance: $('f-appearance'),
+  pronoun: $('f-pronoun'), userAddress: $('f-user-address'),
+  occupation: $('f-occupation'), appearance: $('f-appearance'),
   personality: $('f-personality'), relations: $('f-relations'),
   userName: $('f-user-name'), userRole: $('f-user-role'), userNotes: $('f-user-notes'),
   greeting: $('f-greeting'),
 };
 const errors = {
   name: $('err-name'), gender: $('err-gender'),
-  genderCustom: $('err-gender-custom'), personality: $('err-personality'),
+  genderCustom: $('err-gender-custom'),
 };
-const required = ['name', 'gender', 'personality'];
+const required = ['name', 'gender'];
 
 Object.keys(simpleFields).forEach(key => {
   const el = simpleFields[key];
@@ -619,10 +619,11 @@ function generateMarkdown() {
   // 基本情報
   md += `# キャラクター設定シート\n\n## 基本情報\n\n`;
   md += `| 項目 | 内容 |\n|------|------|\n`;
-  md += `| **名前** | ${charName} |\n`;
+  md += `| **名前** | ___CHARNAME_LITERAL___ |\n`;
   if (c.age)      md += `| **年齢** | ${c.age} |\n`;
   md += `| **性別** | ${genderVal || '（未設定）'} |\n`;
-  if (c.pronoun)  md += `| **一人称** | ${c.pronoun} |\n`;
+  if (c.pronoun)      md += `| **一人称** | ${c.pronoun} |\n`;
+  if (c.userAddress)  md += `| **ユーザーへの呼び方** | ${c.userAddress} |\n`;
   if (c.occupation) md += `| **職業・属性** | ${c.occupation} |\n`;
 
   if (c.appearance)  md += `\n## 外見\n\n${c.appearance}\n`;
@@ -684,6 +685,7 @@ function generateMarkdown() {
   }
 
   result = result.replace(notePlaceholder, notePattern);
+  result = result.replace('___CHARNAME_LITERAL___', charName);
 
   return result.trimEnd() + '\n';
 }
