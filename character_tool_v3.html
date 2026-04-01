@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>キャラクター設定ツール</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600&family=Zen+Kaku+Gothic+New:wght@300;400;700&display=swap');
+
+  :root {
+    --bg: #0f0e0c;
+    --surface: #1a1916;
+    --surface2: #242220;
+    --border: #3a3730;
+    --border-accent: #6b5e3e;
+    --text: #e8e0d0;
+    --text-muted: #8a8070;
+    --text-dim: #5a5448;
+    --accent: #c9a84c;
+    --accent-dim: #7a6030;
+    --accent-glow: rgba(201,168,76,0.12);
+    --error: #c05050;
+    --error-bg: rgba(192,80,80,0.08);
+    --success: #5a9a70;
+    --success-bg: rgba(90,154,112,0.1);
+    --radius: 4px;
+    --font-body: 'Zen Kaku Gothic New', sans-serif;
+    --font-serif: 'Noto Serif JP', serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-weight: 300;
+    min-height: 100vh;
+    line-height: 1.7;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% 0%, rgba(201,168,76,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(100,80,40,0.06) 0%, transparent 50%);
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px 24px;
+    display: flex; align-items: baseline; gap: 16px;
+    position: sticky; top: 0;
+    background: rgba(15,14,12,0.92);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+  header h1 { font-family: var(--font-serif); font-size: 1.15rem; font-weight: 400; letter-spacing: 0.12em; color: var(--accent); }
+  header span { font-size: 0.72rem; color: var(--text-dim); letter-spacing: 0.08em; }
+
+  .container {
+    max-width: 1040px; margin: 0 auto;
+    padding: 40px 24px 80px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 28px; align-items: start;
+  }
+  @media (max-width: 760px) {
+    header { padding: 20px 20px 16px; }
+    .container { grid-template-columns: 1fr; padding: 24px 16px 60px; gap: 20px; }
+    .span2 { grid-column: span 1 !important; }
+  }
+  .span2 { grid-column: span 2; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .panel-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .panel-header .icon { width: 16px; height: 16px; fill: none; stroke: var(--accent); stroke-width: 1.5; flex-shrink: 0; }
+  .panel-header h2 { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
+  .panel-body { padding: 20px; }
+
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  label { display: block; font-size: 0.70rem; font-weight: 700; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; }
+  label .opt { color: var(--text-dim); margin-left: 4px; font-weight: 300; font-size: 0.65rem; letter-spacing: 0.05em; text-transform: none; }
+  label .req { color: var(--accent); margin-left: 3px; font-weight: 400; }
+
+  input[type="text"], textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text); font-family: var(--font-body);
+    font-size: 0.87rem; font-weight: 300; padding: 9px 12px;
+    transition: border-color 0.2s, box-shadow 0.2s; outline: none; resize: vertical;
+  }
+  input[type="text"]:focus, textarea:focus { border-color: var(--accent-dim); box-shadow: 0 0 0 3px var(--accent-glow); }
+  input[type="text"].error, textarea.error { border-color: var(--error); box-shadow: 0 0 0 2px rgba(192,80,80,0.12); background: var(--error-bg); }
+  input[type="text"]:disabled { opacity: 0.35; cursor: not-allowed; }
+  textarea { min-height: 68px; }
+
+  .error-msg { font-size: 0.68rem; color: var(--error); margin-top: 4px; min-height: 14px; letter-spacing: 0.02em; opacity: 0; transition: opacity 0.2s; }
+  .error-msg.visible { opacity: 1; }
+
+  .radio-group { display: flex; gap: 7px; flex-wrap: wrap; }
+  .radio-label {
+    display: flex; align-items: center; gap: 7px; cursor: pointer;
+    font-size: 0.82rem; font-weight: 300; color: var(--text); letter-spacing: normal;
+    text-transform: none; padding: 6px 12px; border: 1px solid var(--border);
+    border-radius: 20px; transition: border-color 0.2s, background 0.2s; user-select: none; margin-bottom: 0;
+  }
+  .radio-label:hover { border-color: var(--accent-dim); background: var(--accent-glow); }
+  .radio-label input[type="radio"] { appearance: none; width: 11px; height: 11px; border: 1.5px solid var(--text-dim); border-radius: 50%; transition: border-color 0.2s, background 0.2s; flex-shrink: 0; }
+  .radio-label input[type="radio"]:checked { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-dim); }
+  .radio-label:has(input:checked) { border-color: var(--accent-dim); background: var(--accent-glow); color: var(--accent); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    border: none; border-radius: var(--radius); cursor: pointer; font-family: var(--font-body);
+    font-size: 0.74rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    transition: all 0.18s; padding: 9px 16px; outline: none;
+  }
+  .btn-primary { background: var(--accent); color: var(--bg); padding: 12px 24px; font-size: 0.8rem; }
+  .btn-primary:hover { background: #d4b558; box-shadow: 0 4px 16px rgba(201,168,76,0.25); }
+  .btn-primary:active { transform: translateY(1px); }
+  .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--border-accent); color: var(--text); background: var(--surface2); }
+  .btn-danger { background: var(--error); color: #fff; }
+  .btn-danger:hover { background: #d06060; box-shadow: 0 4px 12px rgba(192,80,80,0.3); }
+  .btn-add { background: transparent; color: var(--accent-dim); border: 1px dashed var(--accent-dim); font-size: 0.7rem; padding: 6px 12px; }
+  .btn-add:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+  .btn svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+  .action-bar-outer {
+    grid-column: span 2;
+    display: flex; gap: 12px; align-items: center; justify-content: flex-end; padding: 0 2px;
+  }
+  @media (max-width: 760px) { .action-bar-outer { grid-column: span 1; flex-wrap: wrap; } }
+
+  .output-box {
+    width: 100%; background: #0a0908; border: 1px solid var(--border);
+    border-radius: var(--radius); color: #b0c8a0; font-family: 'Courier New', monospace;
+    font-size: 0.79rem; line-height: 1.8; padding: 16px; min-height: 180px; resize: vertical; outline: none;
+  }
+  .output-actions { display: flex; gap: 10px; margin-top: 12px; align-items: center; }
+  .copy-feedback { font-size: 0.70rem; color: var(--success); opacity: 0; transition: opacity 0.3s; letter-spacing: 0.05em; display: flex; align-items: center; gap: 4px; }
+  .copy-feedback.visible { opacity: 1; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.22s; }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal { background: var(--surface); border: 1px solid var(--border-accent); border-radius: 6px; padding: 32px; width: 90%; max-width: 380px; transform: translateY(12px) scale(0.97); transition: transform 0.22s; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+  .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+  .modal-title { font-family: var(--font-serif); font-size: 1rem; font-weight: 400; color: var(--accent); margin-bottom: 10px; letter-spacing: 0.06em; }
+  .modal-desc { font-size: 0.84rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 24px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  .divider { height: 1px; background: var(--border); margin: 18px 0; }
+  .section-title { font-size: 0.63rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 14px; padding-bottom: 7px; border-bottom: 1px solid var(--border); }
+
+  .status-bar { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: var(--success-bg); border-top: 1px solid rgba(90,154,112,0.2); font-size: 0.70rem; color: var(--success); letter-spacing: 0.05em; opacity: 0; max-height: 0; overflow: hidden; transition: opacity 0.3s, max-height 0.3s; }
+  .status-bar.visible { opacity: 1; max-height: 60px; }
+
+  .capacity-bar { height: 2px; background: var(--border); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .capacity-fill { height: 100%; background: var(--accent); border-radius: 2px; width: 0%; transition: width 0.4s, background 0.3s; }
+  .capacity-fill.warn { background: #c07030; }
+  .capacity-fill.danger { background: var(--error); }
+  .capacity-label { font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.06em; margin-top: 3px; text-align: right; }
+
+  .list-rows { display: flex; flex-direction: column; gap: 8px; }
+  .list-row { display: flex; gap: 8px; align-items: center; }
+  .list-row input[type="text"] { flex: 1; }
+  .btn-remove { flex-shrink: 0; background: transparent; border: 1px solid var(--border); color: var(--text-dim); border-radius: var(--radius); width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: border-color 0.2s, color 0.2s; }
+  .btn-remove:hover { border-color: var(--error); color: var(--error); }
+  .btn-remove svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .list-hint { font-size: 0.67rem; color: var(--text-dim); margin-top: 6px; line-height: 1.5; font-style: italic; }
+
+  .dialogue-list { display: flex; flex-direction: column; gap: 14px; }
+  .dialogue-item { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+  .dialogue-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .dialogue-item-num { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-dim); font-weight: 700; }
+  .dialogue-speaker-label { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); font-weight: 700; margin-bottom: 3px; }
+  .dialogue-char-label { color: var(--accent-dim) !important; }
+  .dialogue-field + .dialogue-field { margin-top: 8px; }
+  .dialogue-hint { font-size: 0.67rem; color: var(--text-dim); margin-top: 8px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>キャラクター設定ツール</h1>
+  <span>SOP最終版 準拠実装</span>
+</header>
+
+<div class="container">
+
+  <!-- LEFT: キャラクター情報 -->
+  <div class="panel" style="grid-row: span 3;">
+    <div class="panel-header">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <h2>キャラクター情報</h2>
+    </div>
+    <div class="panel-body">
+
+      <div class="field">
+        <label>キャラクター名<span class="req">*</span></label>
+        <input type="text" id="f-name" placeholder="例：桜 凛花" autocomplete="off">
+        <div class="error-msg" id="err-name">⚠ 名前は必須です</div>
+      </div>
+
+      <div class="field">
+        <label>年齢<span class="opt">任意</span></label>
+        <input type="text" id="f-age" placeholder="例：17" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label>性別<span class="req">*</span></label>
+        <div class="radio-group">
+          <label class="radio-label"><input type="radio" name="gender" value="男性"> 男性</label>
+          <label class="radio-label"><input type="radio" name="gender" value="女性"> 女性</label>
+          <label class="radio-label"><input type="radio" name="gender" value="カスタム"> カスタム</label>
+        </div>
+        <div class="error-msg" id="err-gender">⚠ 性別を選択してください</div>
+      </div>
+
+      <div class="field">
+        <label>性別（カスタム入力）</label>
+        <input type="text" id="f-gender-custom" placeholder="カスタム選択時に入力" disabled autocomplete="off">
+        <div class="error-msg" id="err-gender-custom">⚠ カスタム性別を入力してください</div>
+      </div>
+
+      <div class="field">
+        <label>一人称<span class="opt">任意</span></label>
+        <input type="text" id="f-pronoun" placeholder="例：私、俺、僕" autocomplete="off">
+      </div>
+
+      <div class="divider"></div>
+      <div class="section-title">詳細設定</div>
+
+      <div class="field">
+        <label>職業・属性<span class="opt">任意</span></label>
+        <input type="text" id="f-occupation" placeholder="例：高校生、魔法使い" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label>外見<span class="opt">任意</span></label>
+        <textarea id="f-appearance" placeholder="例：銀色の長髪、青い瞳、制服姿"></textarea>
+      </div>
+
+      <div class="field">
+        <label>性格<span class="req">*</span></label>
+        <textarea id="f-personality" placeholder="例：冷静沈着だが、仲間には優しい"></textarea>
+        <div class="error-msg" id="err-personality">⚠ 性格は必須です</div>
+      </div>
+
+      <div class="field">
+        <label>関係性<span class="opt">任意</span></label>
+        <textarea id="f-relations" placeholder="例：幼馴染みの主人公に対して複雑な感情を持つ"></textarea>
+      </div>
+
+      <!-- 推奨事項 -->
+      <div class="field">
+        <label>推奨事項<span class="opt">任意</span></label>
+        <div class="list-rows" id="suggestion-list"></div>
+        <div style="margin-top:8px;">
+          <button class="btn btn-add" id="btn-add-suggestion" type="button">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            推奨事項を追加
+          </button>
+        </div>
+      </div>
+
+      <!-- 禁則事項 -->
+      <div class="field">
+        <label>禁則事項<span class="opt">任意</span></label>
+        <div class="list-rows" id="prohibition-list"></div>
+        <p class="list-hint">⚠ 入力した禁則事項に違反する行動・発言があった場合、キャラクターとして拒絶・無視します。</p>
+        <div style="margin-top:8px;">
+          <button class="btn btn-add" id="btn-add-prohibition" type="button">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            禁則事項を追加
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <div class="capacity-bar"><div class="capacity-fill" id="capacity-fill"></div></div>
+        <div class="capacity-label" id="capacity-label">localStorage 使用量：計算中...</div>
+      </div>
+
+    </div>
+    <div class="status-bar" id="save-status">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>保存完了 — localStorage に書き込みました</span>
+    </div>
+  </div>
+
+  <!-- RIGHT TOP: ユーザー情報 -->
+  <div class="panel">
+    <div class="panel-header">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <h2>ユーザー（相手役）情報</h2>
+    </div>
+    <div class="panel-body">
+      <div class="field">
+        <label>ユーザー名 / 呼称<span class="opt">任意 — 空欄時は {{user}}</span></label>
+        <input type="text" id="f-user-name" placeholder="例：凪、あなた" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>立場・役割<span class="opt">任意</span></label>
+        <input type="text" id="f-user-role" placeholder="例：部下、幼馴染み" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>補足情報<span class="opt">任意</span></label>
+        <textarea id="f-user-notes" placeholder="例：内向的で頑張り屋。上司に密かに憧れを持っている。" style="min-height:56px;"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT MID: セリフ例 -->
+  <div class="panel">
+    <div class="panel-header">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <h2>セリフ例</h2>
+    </div>
+    <div class="panel-body">
+      <p style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
+        AIがキャラクターのトーン・テンポ・語彙を学習するための例文です。<br>
+        <span style="color:var(--accent-dim);">3例以上</span>あるとAIの再現精度が向上します。
+      </p>
+
+      <div class="field" style="margin-bottom:16px;">
+        <label>グリーティング<span class="opt">任意 — 最初の一言</span></label>
+        <textarea id="f-greeting" placeholder="例：「……来たか。予定通りだ」" style="min-height:56px;"></textarea>
+        <p class="list-hint" style="margin-top:5px;">キャラクターが最初に発する自発的なセリフ。口調・テンションを伝えるのに効果的です。</p>
+      </div>
+
+      <div class="divider" style="margin:14px 0;"></div>
+
+      <div class="dialogue-list" id="dialogue-list"></div>
+      <div style="margin-top:10px;">
+        <button class="btn btn-add" id="btn-add-dialogue" type="button">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          セリフ例を追加
+        </button>
+        <p class="dialogue-hint" style="margin-top:6px;">{{user}} と {{char}} の記法で入力。そのまま出力に反映されます。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTION BAR -->
+  <div class="action-bar-outer">
+    <button class="btn btn-ghost" id="btn-reset-open" type="button">
+      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+      全件クリア
+    </button>
+    <button class="btn btn-primary" id="btn-save" type="button">
+      <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      保存して出力生成
+    </button>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="panel span2">
+    <div class="panel-header">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <h2>AIチャット向け出力（Markdown）</h2>
+    </div>
+    <div class="panel-body">
+      <textarea class="output-box" id="output-box" readonly placeholder="「保存して出力生成」を押すとマークダウン形式のテキストが生成されます..."></textarea>
+      <div class="output-actions">
+        <button class="btn btn-ghost" id="btn-copy" type="button">
+          <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          コピー
+        </button>
+        <span class="copy-feedback" id="copy-feedback">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          クリップボードにコピーしました
+        </span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-title" id="modal-title">全件クリアの確認</div>
+    <p class="modal-desc">保存されているすべてのデータを削除し、フォームを初期化します。<br>この操作は取り消せません。</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="btn-modal-cancel" type="button">キャンセル</button>
+      <button class="btn btn-danger" id="btn-modal-confirm" type="button">削除を実行</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const LS_KEY = 'character_tool_data';
+const MAX_BYTES = 5 * 1024 * 1024;
+
+const character = {
+  name:'', age:'', gender:'', genderCustom:'', pronoun:'',
+  occupation:'', appearance:'', personality:'', relations:'',
+  suggestions: [],
+  prohibitions: [],
+  userName:'', userRole:'', userNotes:'',
+  greeting:'',
+  dialogues: []
+};
+
+const $ = id => document.getElementById(id);
+
+/* ── Generic list row manager ── */
+function makeListManager(listId, arrayKey, placeholder) {
+  function render() {
+    const el = $(listId);
+    el.innerHTML = '';
+    character[arrayKey].forEach((val, i) => addRowDOM(i, val));
+  }
+  function addRow(val = '') {
+    character[arrayKey].push(val);
+    addRowDOM(character[arrayKey].length - 1, val);
+  }
+  function addRowDOM(idx, val) {
+    const el = $(listId);
+    const row = document.createElement('div');
+    row.className = 'list-row';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = val;
+    inp.placeholder = placeholder;
+    inp.autocomplete = 'off';
+    inp.addEventListener('input', () => { character[arrayKey][idx] = inp.value; });
+    const rb = document.createElement('button');
+    rb.className = 'btn-remove';
+    rb.type = 'button';
+    rb.title = '削除';
+    rb.innerHTML = `<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+    rb.addEventListener('click', () => { character[arrayKey].splice(idx, 1); render(); });
+    row.appendChild(inp);
+    row.appendChild(rb);
+    el.appendChild(row);
+  }
+  return { render, addRow };
+}
+
+const suggestionMgr = makeListManager('suggestion-list', 'suggestions', '例：日本語で返信すること');
+const prohibitionMgr = makeListManager('prohibition-list', 'prohibitions', '例：暴力的な行為の描写');
+
+$('btn-add-suggestion').addEventListener('click', () => suggestionMgr.addRow());
+$('btn-add-prohibition').addEventListener('click', () => prohibitionMgr.addRow());
+
+/* ── Dialogue rows ── */
+function renderDialogues() {
+  const list = $('dialogue-list');
+  list.innerHTML = '';
+  character.dialogues.forEach((d, i) => addDialogueRowDOM(i, d));
+}
+
+function addDialogueRow(d = {user:'', char:''}) {
+  character.dialogues.push({...d});
+  addDialogueRowDOM(character.dialogues.length - 1, d);
+}
+
+function addDialogueRowDOM(idx, d) {
+  const list = $('dialogue-list');
+  const item = document.createElement('div');
+  item.className = 'dialogue-item';
+
+  const header = document.createElement('div');
+  header.className = 'dialogue-item-header';
+  const num = document.createElement('span');
+  num.className = 'dialogue-item-num';
+  num.textContent = `セリフ例 ${idx + 1}`;
+  const rb = document.createElement('button');
+  rb.className = 'btn-remove';
+  rb.type = 'button';
+  rb.title = '削除';
+  rb.innerHTML = `<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  rb.addEventListener('click', () => { character.dialogues.splice(idx, 1); renderDialogues(); });
+  header.appendChild(num);
+  header.appendChild(rb);
+
+  const mkField = (labelText, isChar, val, ph, minh, cb) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'dialogue-field';
+    const lbl = document.createElement('div');
+    lbl.className = 'dialogue-speaker-label' + (isChar ? ' dialogue-char-label' : '');
+    lbl.textContent = labelText;
+    const ta = document.createElement('textarea');
+    ta.value = val || '';
+    ta.placeholder = ph;
+    ta.style.minHeight = minh;
+    ta.addEventListener('input', cb);
+    wrap.appendChild(lbl);
+    wrap.appendChild(ta);
+    return wrap;
+  };
+
+  item.appendChild(header);
+  item.appendChild(mkField('{{user}}', false, d.user, 'ユーザーのセリフや行動を入力', '48px', e => { character.dialogues[idx].user = e.target.value; }));
+  item.appendChild(mkField('{{char}}', true,  d.char, 'キャラクターの返答を入力',     '58px', e => { character.dialogues[idx].char = e.target.value; }));
+  list.appendChild(item);
+}
+
+$('btn-add-dialogue').addEventListener('click', () => addDialogueRow());
+
+/* ── Simple fields ── */
+const simpleFields = {
+  name: $('f-name'), age: $('f-age'), genderCustom: $('f-gender-custom'),
+  pronoun: $('f-pronoun'), occupation: $('f-occupation'), appearance: $('f-appearance'),
+  personality: $('f-personality'), relations: $('f-relations'),
+  userName: $('f-user-name'), userRole: $('f-user-role'), userNotes: $('f-user-notes'),
+  greeting: $('f-greeting'),
+};
+const errors = {
+  name: $('err-name'), gender: $('err-gender'),
+  genderCustom: $('err-gender-custom'), personality: $('err-personality'),
+};
+const required = ['name', 'gender', 'personality'];
+
+Object.keys(simpleFields).forEach(key => {
+  const el = simpleFields[key];
+  if (!el) return;
+  el.addEventListener('input', () => { character[key] = el.value; });
+  el.addEventListener('blur',  () => { if (required.includes(key)) validateField(key); });
+});
+
+document.querySelectorAll('input[name="gender"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    character.gender = radio.value;
+    const isCustom = radio.value === 'カスタム';
+    simpleFields.genderCustom.disabled = !isCustom;
+    if (!isCustom) { simpleFields.genderCustom.value = ''; character.genderCustom = ''; markError(simpleFields.genderCustom, errors.genderCustom, false); }
+    markError(null, errors.gender, false);
+  });
+});
+
+/* ── Validation ── */
+function markError(el, errEl, hasError) {
+  if (el) el.classList.toggle('error', hasError);
+  if (errEl) errEl.classList.toggle('visible', hasError);
+}
+
+function validateField(key) {
+  if (key === 'gender') {
+    const checked = document.querySelector('input[name="gender"]:checked');
+    markError(null, errors.gender, !checked);
+    if (checked?.value === 'カスタム' && !character.genderCustom.trim()) {
+      markError(simpleFields.genderCustom, errors.genderCustom, true);
+      return false;
+    }
+    return !!checked;
+  }
+  const el = simpleFields[key]; const errEl = errors[key];
+  const valid = (character[key] || '').trim() !== '';
+  markError(el, errEl, !valid);
+  return valid;
+}
+
+function validateAll() {
+  let ok = true;
+  for (const key of required) { if (!validateField(key)) ok = false; }
+  const checked = document.querySelector('input[name="gender"]:checked');
+  if (checked?.value === 'カスタム' && !character.genderCustom.trim()) {
+    markError(simpleFields.genderCustom, errors.genderCustom, true); ok = false;
+  }
+  return ok;
+}
+
+/* ── LocalStorage ── */
+function getDataSize(str) { return new Blob([str]).size; }
+
+function saveToStorage() {
+  const json = JSON.stringify(character);
+  if (getDataSize(json) > MAX_BYTES) { alert('⚠ データサイズが上限（5MB）を超えています。保存を中止します。'); return false; }
+  try { localStorage.setItem(LS_KEY, json); updateCapacity(); return true; }
+  catch(e) { alert('localStorage への書き込みに失敗しました。\n' + e.message); return false; }
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    Object.keys(character).forEach(key => { if (data[key] !== undefined) character[key] = data[key]; });
+    if (!Array.isArray(character.suggestions))  character.suggestions  = [];
+    if (!Array.isArray(character.prohibitions)) character.prohibitions = [];
+    if (!Array.isArray(character.dialogues))    character.dialogues    = [];
+    return true;
+  } catch(e) { return false; }
+}
+
+function clearStorage() { localStorage.removeItem(LS_KEY); updateCapacity(); }
+
+function updateCapacity() {
+  const raw = localStorage.getItem(LS_KEY) || '';
+  const size = getDataSize(raw);
+  const pct = Math.min((size / MAX_BYTES) * 100, 100);
+  $('capacity-fill').style.width = pct + '%';
+  $('capacity-fill').className = 'capacity-fill' + (pct > 90 ? ' danger' : pct > 70 ? ' warn' : '');
+  $('capacity-label').textContent = `localStorage 使用量：${(size/1024).toFixed(2)} KB / 5,120 KB（${pct.toFixed(1)}%）`;
+}
+
+/* ── Markdown generation ── */
+function reEscape(str) { return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+function generateMarkdown() {
+  const c = character;
+  const charName     = c.name || 'キャラクター';
+  const userName     = c.userName.trim();
+  const genderVal    = c.gender === 'カスタム' ? (c.genderCustom || 'カスタム') : c.gender;
+
+  let md = '';
+
+  // 役割指示
+  md += `あなたは以下のキャラクター設定に従い、{{char}}を演じてください。\n`;
+  md += `設定に忠実に、一人称・口調・性格を維持しながらロールプレイを行ってください。\n\n`;
+  if (userName) {
+    md += `> {{user}} は「${userName}」を、{{char}} は「${charName}」を指します。\n\n`;
+  } else {
+    md += `> {{char}} は「${charName}」を指します。\n\n`;
+  }
+  md += `---\n\n`;
+
+  // 基本情報
+  md += `# キャラクター設定シート\n\n## 基本情報\n\n`;
+  md += `| 項目 | 内容 |\n|------|------|\n`;
+  md += `| **名前** | ${charName} |\n`;
+  if (c.age)      md += `| **年齢** | ${c.age} |\n`;
+  md += `| **性別** | ${genderVal || '（未設定）'} |\n`;
+  if (c.pronoun)  md += `| **一人称** | ${c.pronoun} |\n`;
+  if (c.occupation) md += `| **職業・属性** | ${c.occupation} |\n`;
+
+  if (c.appearance)  md += `\n## 外見\n\n${c.appearance}\n`;
+  if (c.personality) md += `\n## 性格\n\n${c.personality}\n`;
+  if (c.relations)   md += `\n## 関係性\n\n${c.relations}\n`;
+
+  // ユーザー情報
+  if (userName || c.userRole || c.userNotes) {
+    md += `\n## {{user}}（相手役）情報\n\n| 項目 | 内容 |\n|------|------|\n`;
+    if (userName)    md += `| **名前 / 呼称** | ${userName} |\n`;
+    if (c.userRole)  md += `| **立場・役割** | ${c.userRole} |\n`;
+    if (c.userNotes) md += `| **補足** | ${c.userNotes} |\n`;
+  }
+
+  // 推奨事項
+  const validSuggestions = c.suggestions.filter(s => s.trim());
+  if (validSuggestions.length > 0) {
+    md += `\n## 推奨事項\n\n`;
+    validSuggestions.forEach(s => { md += `- ${s}\n`; });
+  }
+
+  // 禁則事項
+  const validProhibitions = c.prohibitions.filter(p => p.trim());
+  if (validProhibitions.length > 0) {
+    md += `\n## 禁則事項\n\n`;
+    md += `以下の禁則事項に違反する行動・発言が求められた場合、{{char}}はキャラクターとして拒絶または無視してください。\n\n`;
+    validProhibitions.forEach(p => { md += `- ${p}\n`; });
+  }
+
+  // グリーティング
+  if (c.greeting?.trim()) {
+    md += `\n## グリーティング\n\n${c.greeting.trim()}\n`;
+  }
+
+  // セリフ例
+  const validDialogues = c.dialogues.filter(d => d.user?.trim() || d.char?.trim());
+  if (validDialogues.length > 0) {
+    md += `\n## セリフ例\n\n`;
+    validDialogues.forEach((d, i) => {
+      md += `### 例 ${i + 1}\n\n`;
+      if (d.user?.trim()) md += `{{user}}: ${d.user.trim()}\n\n`;
+      if (d.char?.trim()) md += `{{char}}: ${d.char.trim()}\n\n`;
+    });
+  }
+
+  // {{user}} / {{char}} への一括置換
+  // Save the mapping note, apply replacements, then restore it
+  const notePattern = userName
+    ? `> {{user}} は「${userName}」を、{{char}} は「${charName}」を指します。`
+    : `> {{char}} は「${charName}」を指します。`;
+  const notePlaceholder = '___NOTE_PLACEHOLDER___';
+  let result = md.replace(notePattern, notePlaceholder);
+
+  if (charName && charName !== 'キャラクター') {
+    result = result.replace(new RegExp(reEscape(charName), 'g'), '{{char}}');
+  }
+  if (userName) {
+    result = result.replace(new RegExp(reEscape(userName), 'g'), '{{user}}');
+  }
+
+  result = result.replace(notePlaceholder, notePattern);
+
+  return result.trimEnd() + '\n';
+}
+
+/* ── Populate form ── */
+function populateForm() {
+  Object.keys(simpleFields).forEach(key => {
+    if (simpleFields[key]) simpleFields[key].value = character[key] || '';
+  });
+  if (character.gender) {
+    const radio = document.querySelector(`input[name="gender"][value="${character.gender}"]`);
+    if (radio) { radio.checked = true; simpleFields.genderCustom.disabled = character.gender !== 'カスタム'; }
+  }
+  suggestionMgr.render();
+  prohibitionMgr.render();
+  renderDialogues();
+}
+
+/* ── Reset ── */
+function resetAll() {
+  Object.keys(character).forEach(k => { character[k] = Array.isArray(character[k]) ? [] : ''; });
+  populateForm();
+  clearStorage();
+  $('output-box').value = '';
+  Object.values(errors).forEach(el => el && el.classList.remove('visible'));
+  Object.values(simpleFields).forEach(el => el && el.classList.remove('error'));
+  document.querySelectorAll('input[name="gender"]').forEach(r => r.checked = false);
+  simpleFields.genderCustom.disabled = true;
+}
+
+/* ── Events ── */
+$('btn-save').addEventListener('click', () => {
+  if (!validateAll()) return;
+  if (!saveToStorage()) return;
+  $('output-box').value = generateMarkdown();
+  const s = $('save-status');
+  s.classList.add('visible');
+  setTimeout(() => s.classList.remove('visible'), 3000);
+});
+
+$('btn-copy').addEventListener('click', async () => {
+  const text = $('output-box').value;
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    const fb = $('copy-feedback');
+    fb.classList.add('visible');
+    setTimeout(() => fb.classList.remove('visible'), 2500);
+  } catch(e) {
+    alert('クリップボードへの書き込みに失敗しました。\nHTTPS環境で実行してください。\n' + e.message);
+  }
+});
+
+$('btn-reset-open').addEventListener('click',   () => $('modal-overlay').classList.add('open'));
+$('btn-modal-cancel').addEventListener('click',  () => $('modal-overlay').classList.remove('open'));
+$('btn-modal-confirm').addEventListener('click', () => { resetAll(); $('modal-overlay').classList.remove('open'); });
+$('modal-overlay').addEventListener('click', e  => { if (e.target === $('modal-overlay')) $('modal-overlay').classList.remove('open'); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('modal-overlay').classList.remove('open'); });
+
+/* ── Init ── */
+(function init() {
+  const loaded = loadFromStorage();
+  if (loaded) {
+    populateForm();
+    if (character.name) $('output-box').value = generateMarkdown();
+  } else {
+    suggestionMgr.addRow('');
+    prohibitionMgr.addRow('');
+    addDialogueRow();
+  }
+  updateCapacity();
+})();
+</script>
+</body>
+</html>
