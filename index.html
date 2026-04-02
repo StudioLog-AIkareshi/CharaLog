@@ -726,6 +726,10 @@ function generateMarkdown() {
     result = result.replace(new RegExp(reEscape(userName), 'g'), '{{user}}');
   }
 
+  // 日本語の「キャラクター」「ユーザー」を {{char}} / {{user}} に置換
+  result = result.replace(/キャラクター/g, '{{char}}');
+  result = result.replace(/ユーザー/g, '{{user}}');
+
   result = result.replace(notePlaceholder, notePattern);
   result = result.replace('___CHARNAME_LITERAL___', charName);
 
