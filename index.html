@@ -7,22 +7,24 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600&family=Zen+Kaku+Gothic+New:wght@300;400;700&display=swap');
 
-  :root {
-    --bg: #0f0e0c;
-    --surface: #1a1916;
-    --surface2: #242220;
-    --border: #3a3730;
-    --border-accent: #6b5e3e;
-    --text: #e8e0d0;
-    --text-muted: #8a8070;
-    --text-dim: #5a5448;
-    --accent: #c9a84c;
-    --accent-dim: #7a6030;
-    --accent-glow: rgba(201,168,76,0.12);
-    --error: #c05050;
+:root {
+    /* ここから下のカラーコードを変更することで、全体の配色をカスタマイズできます */
+    --bg: #0f0e0c;               /* 全体の背景色 */
+    --surface: #1a1916;          /* パネルの背景色 */
+    --surface2: #242220;         /* 入力フィールド等の背景色 */
+    --border: #3a3730;           /* 通常の境界線 */
+    --border-accent: #6b5e3e;    /* 強調された境界線 */
+    --text: #e8e0d0;             /* メインの文字色 */
+    --text-muted: #8a8070;       /* 補足情報の文字色 */
+    --text-dim: #5a5448;         /* 暗めの文字色・プレースホルダー */
+    --accent: #c9a84c;           /* アクセントカラー（金系統） */
+    --accent-dim: #7a6030;       /* 控えめなアクセントカラー */
+    --accent-glow: rgba(201,168,76,0.12); /* アクセントの光沢・選択色 */
+    --error: #c05050;            /* エラー色 */
     --error-bg: rgba(192,80,80,0.08);
-    --success: #5a9a70;
+    --success: #5a9a70;          /* 成功・保存完了色 */
     --success-bg: rgba(90,154,112,0.1);
+    
     --radius: 4px;
     --font-body: 'Zen Kaku Gothic New', sans-serif;
     --font-serif: 'Noto Serif JP', serif;
