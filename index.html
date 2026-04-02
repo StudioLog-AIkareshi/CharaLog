@@ -86,12 +86,21 @@
   label .opt { color: var(--text-muted); margin-left: 4px; font-weight: 300; font-size: 0.65rem; letter-spacing: 0.05em; text-transform: none; }
   label .req { color: var(--accent); margin-left: 3px; font-weight: 400; }
 
-  input[type="text"], textarea {
-    width: 100%; background: var(--surface2); border: 1px solid var(--border);
-    border-radius: var(--radius); color: var(--text); font-family: var(--font-body);
-    font-size: 0.87rem; font-weight: 300; padding: 9px 12px;
-    transition: border-color 0.2s, box-shadow 0.2s; outline: none; resize: vertical;
-  }
+input[type="text"], textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  
+  /* ここで「入力した時の色」を濃い色に指定 */
+  color: var(--text); 
+  
+  font-family: var(--font-body);
+  font-size: 0.87rem;
+  font-weight: 400; /* 入力文字は少し太めにするとより見やすいです */
+  padding: 9px 12px;
+  outline: none;
+}
   input[type="text"]:focus, textarea:focus { border-color: var(--accent-dim); box-shadow: 0 0 0 3px var(--accent-glow); }
   input[type="text"].error, textarea.error { border-color: var(--error); box-shadow: 0 0 0 2px rgba(192,80,80,0.12); background: var(--error-bg); }
   input[type="text"]:disabled { opacity: 0.35; cursor: not-allowed; }
@@ -230,7 +239,7 @@ textarea::placeholder {
 
       <div class="field">
         <label>年齢<span class="opt">任意</span></label>
-        <input type="text" id="f-age" placeholder="例：17" autocomplete="off">
+        <input type="text" id="f-age" placeholder="例：25" autocomplete="off">
       </div>
 
       <div class="field">
