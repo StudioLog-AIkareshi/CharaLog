@@ -8,27 +8,35 @@
   @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600&family=Zen+Kaku+Gothic+New:wght@300;400;700&display=swap');
 
 :root {
-    /* ここから下のカラーコードを変更することで、全体の配色をカスタマイズできます */
-    --bg: #0f0e0c;               /* 全体の背景色 */
-    --surface: #1a1916;          /* パネルの背景色 */
-    --surface2: #242220;         /* 入力フィールド等の背景色 */
-    --border: #3a3730;           /* 通常の境界線 */
-    --border-accent: #6b5e3e;    /* 強調された境界線 */
-    --text: #e8e0d0;             /* メインの文字色 */
-    --text-muted: #8a8070;       /* 補足情報の文字色 */
-    --text-dim: #5a5448;         /* 暗めの文字色・プレースホルダー */
-    --accent: #c9a84c;           /* アクセントカラー（金系統） */
-    --accent-dim: #7a6030;       /* 控えめなアクセントカラー */
-    --accent-glow: rgba(201,168,76,0.12); /* アクセントの光沢・選択色 */
-    --error: #c05050;            /* エラー色 */
-    --error-bg: rgba(192,80,80,0.08);
-    --success: #5a9a70;          /* 成功・保存完了色 */
-    --success-bg: rgba(90,154,112,0.1);
-    
-    --radius: 4px;
-    --font-body: 'Zen Kaku Gothic New', sans-serif;
-    --font-serif: 'Noto Serif JP', serif;
-  }
+  /* ─── メインカラー：ラベンダー ─── */
+  --accent: #C8B4E8;           /* メインのラベンダー */
+  --accent-dim: #DDD0F0;       /* 薄めのラベンダー（ホバーや補助用） */
+  --accent-glow: rgba(200, 180, 232, 0.2); /* 選択時の淡い光 */
+  --accent-white: #FFFFFF;     /* メインのラベンダーが背景色のときの文字色 */
+
+  /* ─── 背景・パネル（白・薄グレー基調へ変更） ─── */
+  --bg: #F8F9FA;               /* 全体の背景：ごく薄いグレー（白に近い） */
+  --surface: #FFFFFF;          /* パネルの背景：純白 */
+  --surface2: #F1F3F5;         /* 入力フィールド：薄いグレー */
+  --border: #DDD0F0;           /* 境界線：ラベンダーに合わせ、統一感を出す */
+  --border-accent: #C8B4E8;    /* 強調された境界線 */
+
+  /* ─── テキスト：ダークグレー ─── */
+  --text: #333333;             /* メインの文字色：指定のダークグレー */
+  --text-muted: #666666;       /* 補足情報の文字色 */
+  --text-dim: #BBBBBB;         /* プレースホルダー */
+
+  /* ─── 状態表示 ─── */
+  --error: #D6336C;            /* エラー：ラベンダーに合うベリー系 */
+  --error-bg: rgba(214, 51, 108, 0.05);
+  --success: #51CF66;          /* 成功：明るい緑 */
+  --success-bg: rgba(81, 207, 102, 0.1);
+
+  /* ─── 基本設定 ─── */
+  --radius: 6px;               /* 少し丸みを強めると柔らかい印象になります */
+  --font-body: 'Zen Kaku Gothic New', sans-serif;
+  --font-serif: 'Noto Serif JP', serif;
+}
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -39,22 +47,19 @@
     font-weight: 300;
     min-height: 100vh;
     line-height: 1.7;
-    background-image:
-      radial-gradient(ellipse 80% 50% at 20% 0%, rgba(201,168,76,0.04) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(100,80,40,0.06) 0%, transparent 50%);
-  }
+    }
 
   header {
     border-bottom: 1px solid var(--border);
     padding: 28px 40px 24px;
     display: flex; align-items: baseline; gap: 16px;
     position: sticky; top: 0;
-    background: rgba(15,14,12,0.92);
+    background: var(--accent);
     backdrop-filter: blur(12px);
     z-index: 100;
   }
-  header h1 { font-family: var(--font-serif); font-size: 1.15rem; font-weight: 400; letter-spacing: 0.12em; color: var(--accent); }
-  header span { font-size: 0.72rem; color: var(--text-dim); letter-spacing: 0.08em; }
+  header h1 { font-family: var(--font-serif); font-size: 1.15rem; font-weight: 400; letter-spacing: 0.12em; color: var(--accent-white); }
+  header span { font-size: 0.72rem; color: var(--accent-white); letter-spacing: 0.08em; }
 
   .container {
     max-width: 1040px; margin: 0 auto;
@@ -78,7 +83,7 @@
   .field { margin-bottom: 16px; }
   .field:last-child { margin-bottom: 0; }
   label { display: block; font-size: 0.70rem; font-weight: 700; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; }
-  label .opt { color: var(--text-dim); margin-left: 4px; font-weight: 300; font-size: 0.65rem; letter-spacing: 0.05em; text-transform: none; }
+  label .opt { color: var(--text-muted); margin-left: 4px; font-weight: 300; font-size: 0.65rem; letter-spacing: 0.05em; text-transform: none; }
   label .req { color: var(--accent); margin-left: 3px; font-weight: 400; }
 
   input[type="text"], textarea {
@@ -90,6 +95,14 @@
   input[type="text"]:focus, textarea:focus { border-color: var(--accent-dim); box-shadow: 0 0 0 3px var(--accent-glow); }
   input[type="text"].error, textarea.error { border-color: var(--error); box-shadow: 0 0 0 2px rgba(192,80,80,0.12); background: var(--error-bg); }
   input[type="text"]:disabled { opacity: 0.35; cursor: not-allowed; }
+/* プレースホルダー（未入力時のヒント）の色設定 */
+input[type="text"]::placeholder, 
+textarea::placeholder {
+  /* ここで「薄い色」を指定 */
+  color: var(--text-dim);
+  font-weight: 300; /* ヒント文字は細めに */
+}
+
   textarea { min-height: 68px; }
 
   .error-msg { font-size: 0.68rem; color: var(--error); margin-top: 4px; min-height: 14px; letter-spacing: 0.02em; opacity: 0; transition: opacity 0.2s; }
@@ -120,7 +133,7 @@
   .btn-ghost:hover { border-color: var(--border-accent); color: var(--text); background: var(--surface2); }
   .btn-danger { background: var(--error); color: #fff; }
   .btn-danger:hover { background: #d06060; box-shadow: 0 4px 12px rgba(192,80,80,0.3); }
-  .btn-add { background: transparent; color: var(--accent-dim); border: 1px dashed var(--accent-dim); font-size: 0.7rem; padding: 6px 12px; }
+  .btn-add { background: transparent; color: var(--text-muted); border: 1px dashed var(--text-muted); font-size: 0.7rem; padding: 6px 12px; }
   .btn-add:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
   .btn svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; }
 
@@ -131,8 +144,8 @@
   @media (max-width: 760px) { .action-bar-outer { grid-column: span 1; flex-wrap: wrap; } }
 
   .output-box {
-    width: 100%; background: #0a0908; border: 1px solid var(--border);
-    border-radius: var(--radius); color: #b0c8a0; font-family: 'Courier New', monospace;
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text); font-family: 'Courier New', monospace;
     font-size: 0.79rem; line-height: 1.8; padding: 16px; min-height: 180px; resize: vertical; outline: none;
   }
   .output-actions { display: flex; gap: 10px; margin-top: 12px; align-items: center; }
@@ -165,14 +178,15 @@
   .btn-remove { flex-shrink: 0; background: transparent; border: 1px solid var(--border); color: var(--text-dim); border-radius: var(--radius); width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: border-color 0.2s, color 0.2s; }
   .btn-remove:hover { border-color: var(--error); color: var(--error); }
   .btn-remove svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; }
-  .list-hint { font-size: 0.67rem; color: var(--text-dim); margin-top: 6px; line-height: 1.5; font-style: italic; }
+  .list-hint { font-size: 0.67rem; color: var(--text); margin-top: 6px; line-height: 1.5; font-style: italic; }
+  .list-note { font-size:0.72rem;color:var(--text);margin-bottom:12px;line-height:1.6; }
 
   .dialogue-list { display: flex; flex-direction: column; gap: 14px; }
   .dialogue-item { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
   .dialogue-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-  .dialogue-item-num { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-dim); font-weight: 700; }
+  .dialogue-item-num { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); font-weight: 700; }
   .dialogue-speaker-label { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); font-weight: 700; margin-bottom: 3px; }
-  .dialogue-char-label { color: var(--accent-dim) !important; }
+  .dialogue-char-label { color: var(--text-dim) !important; }
   .dialogue-field + .dialogue-field { margin-top: 8px; }
   .dialogue-hint { font-size: 0.67rem; color: var(--text-dim); margin-top: 8px; line-height: 1.5; }
   .footer-credit {
@@ -195,7 +209,7 @@
 <body>
 
 <header>
-  <h1>CharaLog -キャラクター設定ツール-</h1>
+  <h1>CharaLog <span>-キャラクター設定ツール-</span></h1>
 </header>
 
 <div class="container">
@@ -337,7 +351,7 @@
 
       <div class="divider" style="margin:14px 0;"></div>
 
-      <p style="font-size:0.72rem;color:var(--text-dim);margin-bottom:12px;line-height:1.6;">AIがキャラクターのトーン・テンポ・語彙を学習するための例文です。<span style="color:var(--accent-dim);"> 3例以上</span>あるとAIの再現精度が向上します。</p>
+      <p class="list-note">AIがキャラクターのトーン・テンポ・語彙を学習するための例文です。<span style="color:var(--text);font-weight:bold;"> 3例以上</span>あるとAIの再現精度が向上します。</p>
 
       <div class="dialogue-list" id="dialogue-list"></div>
       <div style="margin-top:10px;">
