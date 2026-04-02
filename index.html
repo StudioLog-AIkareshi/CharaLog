@@ -148,9 +148,19 @@ textarea::placeholder {
 
   .action-bar-outer {
     grid-column: span 2;
-    display: flex; gap: 12px; align-items: center; justify-content: flex-end; padding: 0 2px;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 10px; padding: 0 2px;
   }
-  @media (max-width: 760px) { .action-bar-outer { grid-column: span 1; flex-wrap: wrap; } }
+  .action-bar-buttons { display: flex; gap: 12px; align-items: center; }
+  .action-msg {
+    font-size: 0.75rem; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: var(--radius); opacity: 0; max-height: 0;
+    overflow: hidden; transition: opacity 0.25s, max-height 0.25s; pointer-events: none;
+  }
+  .action-msg.visible { opacity: 1; max-height: 60px; }
+  .action-msg.success { background: var(--success-bg); color: var(--success); border: 1px solid rgba(81,207,102,0.3); }
+  .action-msg.error   { background: var(--error-bg);   color: var(--error);   border: 1px solid rgba(214,51,108,0.2); }
+  .action-msg svg { flex-shrink: 0; }
+  @media (max-width: 760px) { .action-bar-outer { grid-column: span 1; align-items: stretch; } .action-bar-buttons { flex-wrap: wrap; justify-content: flex-end; } }
 
   .output-box {
     width: 100%; background: var(--surface2); border: 1px solid var(--border);
@@ -379,14 +389,20 @@ textarea::placeholder {
 
   <!-- ACTION BAR -->
   <div class="action-bar-outer">
-    <button class="btn btn-ghost" id="btn-reset-open" type="button">
-      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
-      全件クリア
-    </button>
-    <button class="btn btn-primary" id="btn-save" type="button">
-      <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-      保存して出力生成
-    </button>
+    <div class="action-bar-buttons">
+      <button class="btn btn-ghost" id="btn-reset-open" type="button">
+        <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+        全件クリア
+      </button>
+      <button class="btn btn-primary" id="btn-save" type="button">
+        <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        保存して出力生成
+      </button>
+    </div>
+    <div class="action-msg" id="action-msg">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="action-msg-icon"></svg>
+      <span id="action-msg-text"></span>
+    </div>
   </div>
 
   <!-- OUTPUT -->
@@ -640,15 +656,31 @@ function updateCapacity() {
 /* ── Markdown generation ── */
 function reEscape(str) { return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
+// ユーザー入力テキスト内の「キャラクター」「ユーザー」およびキャラ名・ユーザー名を置換する
+function replaceUserInput(text, charName, userName) {
+  let t = text;
+  if (charName && charName !== 'キャラクター') {
+    t = t.replace(new RegExp(reEscape(charName), 'g'), '{{char}}');
+  }
+  if (userName) {
+    t = t.replace(new RegExp(reEscape(userName), 'g'), '{{user}}');
+  }
+  t = t.replace(/キャラクター/g, '{{char}}');
+  t = t.replace(/ユーザー/g, '{{user}}');
+  return t;
+}
+
 function generateMarkdown() {
   const c = character;
-  const charName     = c.name || 'キャラクター';
-  const userName     = c.userName.trim();
-  const genderVal    = c.gender === 'カスタム' ? (c.genderCustom || 'カスタム') : c.gender;
+  const charName  = c.name || 'キャラクター';
+  const userName  = c.userName.trim();
+  const genderVal = c.gender === 'カスタム' ? (c.genderCustom || 'カスタム') : c.gender;
+  // ユーザー入力フィールドにだけ適用する置換ショートハンド
+  const rep = text => replaceUserInput(text, charName, userName);
 
   let md = '';
 
-  // 役割指示
+  // 役割指示（固定文言：「キャラクター設定」はラベルなのでそのまま）
   md += `あなたは以下のキャラクター設定に従い、{{char}}を演じてください。\n`;
   md += `設定に忠実に、一人称・口調・性格を維持しながらロールプレイを行ってください。\n\n`;
   if (userName) {
@@ -658,46 +690,46 @@ function generateMarkdown() {
   }
   md += `---\n\n`;
 
-  // 基本情報
+  // 基本情報（見出しはラベルなのでそのまま、入力値は rep() を通す）
   md += `# キャラクター設定シート\n\n## 基本情報\n\n`;
   md += `| 項目 | 内容 |\n|------|------|\n`;
-  md += `| **名前** | ___CHARNAME_LITERAL___ |\n`;
-  if (c.age)      md += `| **年齢** | ${c.age} |\n`;
+  md += `| **名前** | ${charName} |\n`;
+  if (c.age)         md += `| **年齢** | ${c.age} |\n`;
   md += `| **性別** | ${genderVal || '（未設定）'} |\n`;
-  if (c.pronoun)      md += `| **一人称** | ${c.pronoun} |\n`;
-  if (c.userAddress)  md += `| **ユーザーへの呼び方** | ${c.userAddress} |\n`;
-  if (c.occupation) md += `| **職業・属性** | ${c.occupation} |\n`;
+  if (c.pronoun)     md += `| **一人称** | ${c.pronoun} |\n`;
+  if (c.userAddress) md += `| **{{user}}への呼び方** | ${rep(c.userAddress)} |\n`;
+  if (c.occupation)  md += `| **職業・属性** | ${rep(c.occupation)} |\n`;
 
-  if (c.appearance)  md += `\n## 外見\n\n${c.appearance}\n`;
-  if (c.personality) md += `\n## 性格\n\n${c.personality}\n`;
-  if (c.relations)   md += `\n## 関係性\n\n${c.relations}\n`;
+  if (c.appearance)  md += `\n## 外見\n\n${rep(c.appearance)}\n`;
+  if (c.personality) md += `\n## 性格\n\n${rep(c.personality)}\n`;
+  if (c.relations)   md += `\n## 関係性\n\n${rep(c.relations)}\n`;
 
   // ユーザー情報
   if (userName || c.userRole || c.userNotes) {
     md += `\n## {{user}}（相手役）情報\n\n| 項目 | 内容 |\n|------|------|\n`;
     if (userName)    md += `| **名前 / 呼称** | ${userName} |\n`;
-    if (c.userRole)  md += `| **立場・役割** | ${c.userRole} |\n`;
-    if (c.userNotes) md += `| **補足** | ${c.userNotes} |\n`;
+    if (c.userRole)  md += `| **立場・役割** | ${rep(c.userRole)} |\n`;
+    if (c.userNotes) md += `| **補足** | ${rep(c.userNotes)} |\n`;
   }
 
   // 推奨事項
   const validSuggestions = c.suggestions.filter(s => s.trim());
   if (validSuggestions.length > 0) {
     md += `\n## 推奨事項\n\n`;
-    validSuggestions.forEach(s => { md += `- ${s}\n`; });
+    validSuggestions.forEach(s => { md += `- ${rep(s)}\n`; });
   }
 
-  // 禁則事項
+  // 禁則事項（「{{char}}はキャラクターとして」＝役割説明なので後半の「キャラクターとして」はそのまま）
   const validProhibitions = c.prohibitions.filter(p => p.trim());
   if (validProhibitions.length > 0) {
     md += `\n## 禁則事項\n\n`;
     md += `以下の禁則事項に違反する行動・発言が求められた場合、{{char}}はキャラクターとして拒絶または無視してください。\n\n`;
-    validProhibitions.forEach(p => { md += `- ${p}\n`; });
+    validProhibitions.forEach(p => { md += `- ${rep(p)}\n`; });
   }
 
   // グリーティング
   if (c.greeting?.trim()) {
-    md += `\n## グリーティング\n\n${c.greeting.trim()}\n`;
+    md += `\n## グリーティング\n\n${rep(c.greeting.trim())}\n`;
   }
 
   // セリフ例
@@ -706,34 +738,12 @@ function generateMarkdown() {
     md += `\n## セリフ例\n\n`;
     validDialogues.forEach((d, i) => {
       md += `### 例 ${i + 1}\n\n`;
-      if (d.user?.trim()) md += `{{user}}: ${d.user.trim()}\n\n`;
-      if (d.char?.trim()) md += `{{char}}: ${d.char.trim()}\n\n`;
+      if (d.user?.trim()) md += `{{user}}: ${rep(d.user.trim())}\n\n`;
+      if (d.char?.trim()) md += `{{char}}: ${rep(d.char.trim())}\n\n`;
     });
   }
 
-  // {{user}} / {{char}} への一括置換
-  // Save the mapping note, apply replacements, then restore it
-  const notePattern = userName
-    ? `> {{user}} は「${userName}」を、{{char}} は「${charName}」を指します。`
-    : `> {{char}} は「${charName}」を指します。`;
-  const notePlaceholder = '___NOTE_PLACEHOLDER___';
-  let result = md.replace(notePattern, notePlaceholder);
-
-  if (charName && charName !== 'キャラクター') {
-    result = result.replace(new RegExp(reEscape(charName), 'g'), '{{char}}');
-  }
-  if (userName) {
-    result = result.replace(new RegExp(reEscape(userName), 'g'), '{{user}}');
-  }
-
-  // 日本語の「キャラクター」「ユーザー」を {{char}} / {{user}} に置換
-  result = result.replace(/キャラクター/g, '{{char}}');
-  result = result.replace(/ユーザー/g, '{{user}}');
-
-  result = result.replace(notePlaceholder, notePattern);
-  result = result.replace('___CHARNAME_LITERAL___', charName);
-
-  return result.trimEnd() + '\n';
+  return md.trimEnd() + '\n';
 }
 
 /* ── Populate form ── */
@@ -762,14 +772,40 @@ function resetAll() {
   simpleFields.genderCustom.disabled = true;
 }
 
+/* ── Action message ── */
+function showActionMsg(type, text) {
+  const el   = $('action-msg');
+  const icon = $('action-msg-icon');
+  const txt  = $('action-msg-text');
+  el.className = 'action-msg';            // リセット
+  if (type === 'success') {
+    icon.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+    el.classList.add('success');
+  } else {
+    icon.innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+    el.classList.add('error');
+  }
+  txt.textContent = text;
+  el.classList.add('visible');
+  if (type === 'success') {
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => el.classList.remove('visible'), 3500);
+  }
+}
+
 /* ── Events ── */
 $('btn-save').addEventListener('click', () => {
-  if (!validateAll()) return;
+  if (!validateAll()) {
+    // どの必須項目が足りないか調べてメッセージに反映
+    const missing = [];
+    if (!(character.name || '').trim())                              missing.push('名前');
+    if (!document.querySelector('input[name="gender"]:checked'))    missing.push('性別');
+    showActionMsg('error', `⚠ ${missing.join('・')}を入力してください`);
+    return;
+  }
   if (!saveToStorage()) return;
   $('output-box').value = generateMarkdown();
-  const s = $('save-status');
-  s.classList.add('visible');
-  setTimeout(() => s.classList.remove('visible'), 3000);
+  showActionMsg('success', '✓ 保存しました。Markdownを生成しました');
 });
 
 $('btn-copy').addEventListener('click', async () => {
