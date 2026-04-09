@@ -170,6 +170,8 @@ textarea::placeholder {
   .output-actions { display: flex; gap: 10px; margin-top: 12px; align-items: center; }
   .copy-feedback { font-size: 0.70rem; color: var(--success); opacity: 0; transition: opacity 0.3s; letter-spacing: 0.05em; display: flex; align-items: center; gap: 4px; }
   .copy-feedback.visible { opacity: 1; }
+  .btn-download { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-download:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
 
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.22s; }
   .modal-overlay.open { opacity: 1; pointer-events: all; }
@@ -417,6 +419,10 @@ textarea::placeholder {
         <button class="btn btn-ghost" id="btn-copy" type="button">
           <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           コピー
+        </button>
+        <button class="btn btn-download" id="btn-download" type="button">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          TXTで保存
         </button>
         <span class="copy-feedback" id="copy-feedback">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -806,6 +812,22 @@ $('btn-save').addEventListener('click', () => {
   if (!saveToStorage()) return;
   $('output-box').value = generateMarkdown();
   showActionMsg('success', '✓ 保存しました。Markdownを生成しました');
+});
+
+$('btn-download').addEventListener('click', () => {
+  const text = $('output-box').value;
+  if (!text) return;
+  const charName = (character.name || 'character').replace(/[\\/:*?"<>|]/g, '_');
+  const fileName = `${charName}_setting.txt`;
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 });
 
 $('btn-copy').addEventListener('click', async () => {
