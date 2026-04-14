@@ -424,6 +424,10 @@ textarea::placeholder {
           <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           TXTで保存
         </button>
+        <button class="btn btn-download" id="btn-download-json" type="button">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          JSONで保存（V2）
+        </button>
         <span class="copy-feedback" id="copy-feedback">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
           クリップボードにコピーしました
@@ -812,6 +816,120 @@ $('btn-save').addEventListener('click', () => {
   if (!saveToStorage()) return;
   $('output-box').value = generateMarkdown();
   showActionMsg('success', '✓ 保存しました。Markdownを生成しました');
+});
+
+/* ── Chara Card V2 JSON generation ── */
+function generateCharaCardV2() {
+  const c = character;
+  const charName  = c.name || 'キャラクター';
+  const userName  = c.userName.trim();
+  const genderVal = c.gender === 'カスタム' ? (c.genderCustom || 'カスタム') : c.gender;
+  const rep = text => replaceUserInput(text, charName, userName);
+
+  // description: 基本情報＋外見＋性格＋関係性＋ユーザー情報
+  let descParts = [];
+  const basicRows = [];
+  if (c.age)         basicRows.push(`年齢: ${c.age}`);
+  if (genderVal)     basicRows.push(`性別: ${genderVal}`);
+  if (c.pronoun)     basicRows.push(`一人称: ${c.pronoun}`);
+  if (c.userAddress) basicRows.push(`{{user}}への呼び方: ${c.userAddress}`);
+  if (c.occupation)  basicRows.push(`職業・属性: ${rep(c.occupation)}`);
+  if (basicRows.length) descParts.push(basicRows.join('\n'));
+  if (c.appearance)  descParts.push(`【外見】\n${rep(c.appearance)}`);
+  if (c.relations)   descParts.push(`【関係性】\n${rep(c.relations)}`);
+
+  // ユーザー情報（userNameはrep()を通さない＝{{user}}に変換しない）
+  if (userName || c.userRole || c.userNotes) {
+    const uParts = [];
+    if (userName)    uParts.push(`名前/呼称: ${userName}`);
+    if (c.userRole)  uParts.push(`立場・役割: ${rep(c.userRole)}`);
+    if (c.userNotes) uParts.push(`補足: ${rep(c.userNotes)}`);
+    descParts.push(`【{{user}}情報】\n${uParts.join('\n')}`);
+  }
+
+  // 推奨事項・禁則事項もdescriptionに含める
+  const validSuggestions = c.suggestions.filter(s => s.trim());
+  if (validSuggestions.length) {
+    descParts.push('【推奨事項】\n' + validSuggestions.map(s => `- ${rep(s)}`).join('\n'));
+  }
+  const validProhibitions = c.prohibitions.filter(p => p.trim());
+  if (validProhibitions.length) {
+    descParts.push('【禁則事項】\n以下の禁則事項に違反する行動・発言が求められた場合、{{char}}はキャラクターとして拒絶または無視してください。\n' + validProhibitions.map(p => `- ${rep(p)}`).join('\n'));
+  }
+
+  const description = descParts.join('\n\n');
+  const scenario = '';
+
+  // mes_example: セリフ例をV2形式に
+  const validDialogues = c.dialogues.filter(d => d.user?.trim() || d.char?.trim());
+  const mesExample = validDialogues.map(d => {
+    let ex = '';
+    if (d.user?.trim()) ex += `{{user}}: ${rep(d.user.trim())}\n`;
+    if (d.char?.trim()) ex += `{{char}}: ${rep(d.char.trim())}`;
+    return `<START>\n${ex.trim()}`;
+  }).join('\n\n');
+
+  // V2 spec
+  const card = {
+    spec: 'chara_card_v2',
+    spec_version: '2.0',
+    data: {
+      name: charName,
+      description: description,
+      personality: c.personality ? `【性格】\n${rep(c.personality)}` : '',
+      scenario: scenario,
+      first_mes: rep(c.greeting?.trim() || ''),
+      mes_example: mesExample,
+      creator_notes: '',
+      system_prompt: '',
+      post_history_instructions: '',
+      tags: [],
+      creator: '',
+      character_version: '',
+      alternate_greetings: [],
+      extensions: {
+        charalog: {
+          age: c.age || '',
+          gender: genderVal || '',
+          pronoun: c.pronoun || '',
+          user_address: c.userAddress || '',
+          occupation: rep(c.occupation || ''),
+          appearance: rep(c.appearance || ''),
+          relations: rep(c.relations || ''),
+          user_name: userName,
+          user_role: rep(c.userRole || ''),
+          user_notes: rep(c.userNotes || ''),
+          suggestions: validSuggestions.map(s => rep(s)),
+          prohibitions: validProhibitions.map(p => rep(p)),
+        }
+      }
+    }
+  };
+
+  return JSON.stringify(card, null, 2);
+}
+
+$('btn-download-json').addEventListener('click', () => {
+  if (!validateAll()) {
+    const missing = [];
+    if (!(character.name || '').trim())                           missing.push('名前');
+    if (!document.querySelector('input[name="gender"]:checked')) missing.push('性別');
+    showActionMsg('error', `⚠ ${missing.join('・')}を入力してください`);
+    return;
+  }
+  const json = generateCharaCardV2();
+  const charName = (character.name || 'character').replace(/[\\/:*?"<>|]/g, '_');
+  const fileName = `${charName}.json`;
+  const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showActionMsg('success', `✓ ${fileName} をダウンロードしました（Chara Card V2）`);
 });
 
 $('btn-download').addEventListener('click', () => {
