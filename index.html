@@ -210,6 +210,33 @@ textarea::placeholder {
   .dialogue-char-label { color: var(--text-dim) !important; }
   .dialogue-field + .dialogue-field { margin-top: 8px; }
   .dialogue-hint { font-size: 0.67rem; color: var(--text-dim); margin-top: 8px; line-height: 1.5; }
+  /* ── シチュエーション選択 ── */
+  .situation-bar {
+    grid-column: span 2;
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 18px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .situation-bar label {
+    font-size: 0.70rem; font-weight: 700; letter-spacing: 0.1em;
+    color: var(--text-muted); text-transform: uppercase;
+    white-space: nowrap; margin-bottom: 0;
+  }
+  .situation-select {
+    flex: 1; max-width: 360px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text);
+    font-family: var(--font-body); font-size: 0.87rem; font-weight: 400;
+    padding: 8px 12px; outline: none; cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+    padding-right: 30px;
+  }
+  .situation-select:focus { border-color: var(--accent-dim); box-shadow: 0 0 0 3px var(--accent-glow); }
+  @media (max-width: 760px) { .situation-bar { grid-column: span 1; flex-direction: column; align-items: flex-start; } .situation-select { max-width: 100%; width: 100%; } }
+
   .footer-credit {
     margin-top: 40px;
     padding-bottom: 40px;
@@ -387,6 +414,21 @@ textarea::placeholder {
         <div class="capacity-label" id="capacity-label">localStorage 使用量：計算中...</div>
       </div>
     </div>
+  </div>
+
+  <!-- シチュエーション選択 -->
+  <div class="situation-bar span2">
+    <label for="situation-select">シチュエーション</label>
+    <select class="situation-select" id="situation-select">
+      <option value="">（なし）</option>
+      <option value="朝、起き抜けに">朝、起き抜けに</option>
+      <option value="仕事終わりに帰宅して">仕事終わりに帰宅して</option>
+      <option value="夜、二人きりで">夜、二人きりで</option>
+      <option value="落ち込んでいるときに">落ち込んでいるときに</option>
+      <option value="初めて二人きりになったときに">初めて二人きりになったときに</option>
+      <option value="偶然、外で会って">偶然、外で会って</option>
+      <option value="締め切り前夜、一緒に作業しながら">締め切り前夜、一緒に作業しながら</option>
+    </select>
   </div>
 
   <!-- ACTION BAR -->
@@ -814,7 +856,12 @@ $('btn-save').addEventListener('click', () => {
     return;
   }
   if (!saveToStorage()) return;
-  $('output-box').value = generateMarkdown();
+  let md = generateMarkdown();
+  const situation = $('situation-select').value;
+  if (situation) {
+    md = md.trimEnd() + `\n\n## シチュエーション\n\n${situation}からロールプレイを始めてください。\n`;
+  }
+  $('output-box').value = md;
   showActionMsg('success', '✓ 保存しました。Markdownを生成しました');
 });
 
