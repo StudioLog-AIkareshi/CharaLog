@@ -470,6 +470,10 @@ textarea::placeholder {
           <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           JSONで保存（V2）
         </button>
+        <button class="btn btn-ghost" id="btn-visual-prompt" type="button">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+          ビジュアルプロンプト
+        </button>
         <span class="copy-feedback" id="copy-feedback">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
           クリップボードにコピーしました
@@ -488,6 +492,31 @@ textarea::placeholder {
     <div class="modal-actions">
       <button class="btn btn-ghost" id="btn-modal-cancel" type="button">キャンセル</button>
       <button class="btn btn-danger" id="btn-modal-confirm" type="button">削除を実行</button>
+    </div>
+  </div>
+</div>
+
+<!-- Visual Prompt Modal -->
+<div class="modal-overlay" id="visual-prompt-overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="visual-prompt-title" style="max-width:560px; width:94%;">
+    <div class="modal-title" id="visual-prompt-title">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:inline-block;vertical-align:middle;margin-right:7px;margin-top:-2px;"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      ビジュアルプロンプト
+    </div>
+    <p class="modal-desc" style="margin-bottom:16px;">外見・性格の設定を元に、キャラクタービジュアル生成のためのインタビュープロンプトを出力します。</p>
+    <textarea id="visual-prompt-text" readonly style="min-height:260px; font-size:0.8rem; line-height:1.75; resize:vertical; width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-family:var(--font-body); padding:12px; outline:none; margin-bottom:14px;"></textarea>
+    <div class="modal-actions" style="justify-content:space-between; align-items:center;">
+      <span class="copy-feedback" id="visual-prompt-copy-feedback" style="opacity:0; transition:opacity 0.3s; font-size:0.70rem; color:var(--success); display:flex; align-items:center; gap:4px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        コピーしました
+      </span>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-ghost" id="btn-visual-prompt-copy" type="button">
+          <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          コピー
+        </button>
+        <button class="btn btn-ghost" id="btn-visual-prompt-close" type="button">閉じる</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1013,6 +1042,125 @@ $('btn-modal-cancel').addEventListener('click',  () => $('modal-overlay').classL
 $('btn-modal-confirm').addEventListener('click', () => { resetAll(); $('modal-overlay').classList.remove('open'); });
 $('modal-overlay').addEventListener('click', e  => { if (e.target === $('modal-overlay')) $('modal-overlay').classList.remove('open'); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') $('modal-overlay').classList.remove('open'); });
+
+/* ── Visual Prompt Modal ── */
+
+// generateMarkdown() の基本情報〜禁則事項セクションのみを抽出して返す
+function buildCharacterInfoBlock() {
+  const c = character;
+  const charName  = c.name || 'キャラクター';
+  const userName  = c.userName.trim();
+  const genderVal = c.gender === 'カスタム' ? (c.genderCustom || 'カスタム') : c.gender;
+  const rep = text => replaceUserInput(text, charName, userName);
+
+  let md = '';
+
+  // 基本情報
+  md += `## 基本情報\n\n`;
+  md += `| 項目 | 内容 |\n|------|------|\n`;
+  md += `| **名前** | ${charName} |\n`;
+  if (c.age)         md += `| **年齢** | ${c.age} |\n`;
+  md += `| **性別** | ${genderVal || '（未設定）'} |\n`;
+  if (c.pronoun)     md += `| **一人称** | ${c.pronoun} |\n`;
+  if (c.userAddress) md += `| **{{user}}への呼び方** | ${rep(c.userAddress)} |\n`;
+  if (c.occupation)  md += `| **職業・属性** | ${rep(c.occupation)} |\n`;
+
+  if (c.appearance)  md += `\n## 外見\n\n${rep(c.appearance)}\n`;
+  if (c.personality) md += `\n## 性格\n\n${rep(c.personality)}\n`;
+  if (c.relations)   md += `\n## 関係性\n\n${rep(c.relations)}\n`;
+
+  // 推奨事項
+  const validSuggestions = c.suggestions.filter(s => s.trim());
+  if (validSuggestions.length > 0) {
+    md += `\n## 推奨事項\n\n`;
+    validSuggestions.forEach(s => { md += `- ${rep(s)}\n`; });
+  }
+
+  // 禁則事項
+  const validProhibitions = c.prohibitions.filter(p => p.trim());
+  if (validProhibitions.length > 0) {
+    md += `\n## 禁則事項\n\n`;
+    md += `以下の禁則事項に違反する行動・発言が求められた場合、{{char}}はキャラクターとして拒絶または無視してください。\n\n`;
+    validProhibitions.forEach(p => { md += `- ${rep(p)}\n`; });
+  }
+
+  // グリーティング
+  if (c.greeting?.trim()) {
+    md += `\n## グリーティング\n\n${rep(c.greeting.trim())}\n`;
+  }
+
+  // セリフ例
+  const validDialogues = c.dialogues.filter(d => d.user?.trim() || d.char?.trim());
+  if (validDialogues.length > 0) {
+    md += `\n## セリフ例\n\n`;
+    validDialogues.forEach((d, i) => {
+      md += `### 例 ${i + 1}\n\n`;
+      if (d.user?.trim()) md += `{{user}}: ${rep(d.user.trim())}\n\n`;
+      if (d.char?.trim()) md += `{{char}}: ${rep(d.char.trim())}\n\n`;
+    });
+  }
+
+  return md.trimEnd();
+}
+
+function buildVisualPrompt() {
+  const appearance  = (character.appearance  || '').trim();
+  const personality = (character.personality || '').trim();
+
+  if (!appearance && !personality) {
+    return '外見または性格を入力してからお試しください。';
+  }
+
+  const infoBlock = buildCharacterInfoBlock();
+
+  return `以下のキャラクター設定を読み込んでください。
+
+${infoBlock}
+
+---
+# キャラクタービジュアル・インタビュー
+プロのキャラクターデザイナーとして、上記の設定から読み取れる「内面」や「物語」を、視覚情報へと変換するための【4つの質問】を提示してください。
+## 質問の構成ルール
+1. 各質問には、設定を分析した上で、解釈の幅を広げるための「方向性の違う3つの選択肢（A, B, C）」を用意してください。
+2. 各選択肢には「[性格・設定のここ]を重視するならこのスタイル」という、選ぶための判断基準（理由）を必ず添えてください。
+3. キャラクターの性別や世界観（現代、ファンタジー、SF等）に合わせて、自然な言葉選びで質問を構築してください。
+## 質問の項目
+1. 【外見の第一印象】：髪型、髪色、またはそのキャラを象徴するシルエットについて。
+2. 【眼差しと表情】：そのキャラが持つ「理性」と「本能」、あるいは「公」と「私」のどちらを強調したいか。
+3. 【服装と佇まい】：身分、職業、またはそのキャラが好むファッションの方向性について。
+4. 【象徴的なシーン】：画像として切り取る際、どのような光や場所、ポーズがそのキャラの魅力を最大化するか。
+最後に、ユーザーが自由に補足できる「こだわり項目（アニメ風や実写風、眼鏡、傷跡、アクセサリー、イメージカラー等）」の欄を設けてください。`;
+}
+
+$('btn-visual-prompt').addEventListener('click', () => {
+  $('visual-prompt-text').value = buildVisualPrompt();
+  $('visual-prompt-overlay').classList.add('open');
+});
+
+$('btn-visual-prompt-close').addEventListener('click', () => {
+  $('visual-prompt-overlay').classList.remove('open');
+});
+
+$('visual-prompt-overlay').addEventListener('click', e => {
+  if (e.target === $('visual-prompt-overlay')) $('visual-prompt-overlay').classList.remove('open');
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') $('visual-prompt-overlay').classList.remove('open');
+});
+
+$('btn-visual-prompt-copy').addEventListener('click', async () => {
+  const text = $('visual-prompt-text').value;
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    const fb = $('visual-prompt-copy-feedback');
+    fb.style.opacity = '1';
+    setTimeout(() => { fb.style.opacity = '0'; }, 2500);
+  } catch(e) {
+    alert('クリップボードへの書き込みに失敗しました。\nHTTPS環境で実行してください。\n' + e.message);
+  }
+});
 
 /* ── Init ── */
 (function init() {
